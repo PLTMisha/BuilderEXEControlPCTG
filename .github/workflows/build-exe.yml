@@ -36,7 +36,7 @@ jobs:
       
     - name: Create personalized main.py
       run: |
-        $content = Get-Content -Path "main_template.py" -Raw
+        $content = Get-Content -Path "pc_controller_template.py" -Raw
         $content = $content -replace 'TOKEN = ".*"', 'TOKEN = "${{ github.event.inputs.telegram_token }}"'
         $content = $content -replace 'OWNER_CHAT_ID = \d+', 'OWNER_CHAT_ID = ${{ github.event.inputs.owner_chat_id }}'
         $content | Out-File -FilePath "main.py" -Encoding UTF8
