@@ -2,6 +2,7 @@ services:
   - type: web
     name: pc-controller-generator
     env: python
+    runtime: python-3.11  
     buildCommand: "pip install -r requirements.txt"
     startCommand: "python telegram_bot.py"
     envVars:
@@ -12,4 +13,4 @@ services:
       - key: ADMIN_CHAT_ID
         sync: false
       - key: GITHUB_REPO
-        value: "ваш-username/pc-controller-builder"
+        value: "your-username/pc-controller-builder"
