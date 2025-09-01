@@ -1,0 +1,80 @@
+name: Build PC Controller EXE
+on:
+  workflow_dispatch:
+    inputs:
+      telegram_token:
+        description: 'Telegram Bot Token'
+        required: true
+        type: string
+      owner_chat_id:
+        description: 'Owner Chat ID'
+        required: true
+        type: string
+      user_id:
+        description: 'User ID for filename'
+        required: true
+        type: string
+
+jobs:
+  build-windows-exe:
+    runs-on: windows-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pyinstaller
+        pip install -r requirements.txt
+      
+    - name: Create personalized main.py
+      run: |
+        $content = Get-Content -Path "main_template.py" -Raw
+        $content = $content -replace 'TOKEN = ".*"', 'TOKEN = "${{ github.event.inputs.telegram_token }}"'
+        $content = $content -replace 'OWNER_CHAT_ID = \d+', 'OWNER_CHAT_ID = ${{ github.event.inputs.owner_chat_id }}'
+        $content | Out-File -FilePath "main.py" -Encoding UTF8
+      shell: powershell
+    
+    - name: Create additional files
+      run: |
+        if (!(Test-Path "user_programs.json")) {
+          '{}' | Out-File -FilePath "user_programs.json" -Encoding UTF8
+        }
+        
+        if (!(Test-Path "live_control.html")) {
+          @"
+        <!DOCTYPE html>
+        <html><head><title>PC Controller</title></head>
+        <body><h1>PC Remote Control</h1></body></html>
+        "@ | Out-File -FilePath "live_control.html" -Encoding UTF8
+        }
+      shell: powershell
+    
+    - name: Build EXE with PyInstaller
+      run: |
+        pyinstaller --onefile --windowed --name "PCController_${{ github.event.inputs.user_id }}" main.py
+      
+    - name: Upload EXE artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: PCController_${{ github.event.inputs.user_id }}
+        path: dist/PCController_${{ github.event.inputs.user_id }}.exe
+        retention-days: 7
+
+    - name: Create release
+      if: success()
+      uses: softprops/action-gh-release@v1
+      with:
+        tag_name: "build-${{ github.event.inputs.user_id }}-${{ github.run_number }}"
+        name: "PC Controller for User ${{ github.event.inputs.user_id }}"
+        files: dist/PCController_${{ github.event.inputs.user_id }}.exe
+        generate_release_notes: false
+        draft: false
+        prerelease: false
