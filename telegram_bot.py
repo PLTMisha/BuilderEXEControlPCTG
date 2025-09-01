@@ -945,7 +945,7 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
     try:
         logging.info(f"Начинаю сборку EXE с Nuitka для пользователя {user_id}")
         
-        # Проверяем наличие Nuitka
+        
         try:
             result = subprocess.run([sys.executable, '-c', 'import nuitka; print(nuitka.__version__)'], 
                                   capture_output=True, text=True, timeout=30)
@@ -960,7 +960,7 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
             logging.error(f"Ошибка с Nuitka: {e}")
             return None
         
-        # Настройка диска F:
+        
         if use_f_drive:
             f_build_dir, f_temp_dir = setup_f_drive_build()
             temp_dir = create_f_temp_dir(f"nuitka_build_{user_id}_")
@@ -970,7 +970,7 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
         
         logging.info(f"Временная папка: {temp_dir}")
         
-        # Создаем персонализированный код
+        
         personalized_code = create_personalized_code(token, user_id)
         if not personalized_code:
             return None
@@ -979,7 +979,7 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
         with open(main_file, 'w', encoding='utf-8') as f:
             f.write(personalized_code)
         
-        # Создаем дополнительные файлы
+        
         create_html_file(temp_dir)
         
         programs_file = os.path.join(temp_dir, 'user_programs.json')
@@ -987,18 +987,18 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
             import json
             json.dump({}, f, ensure_ascii=False, indent=2)
         
-        # Упрощенная команда для Nuitka (минимальные параметры)
+        
         output_dir = os.path.join(temp_dir, 'output')
         os.makedirs(output_dir, exist_ok=True)
         
         cmd = [
             sys.executable, '-m', 'nuitka',
-            '--standalone',  # Создаем папку вместо одного файла для надежности
+            '--standalone',  
             '--assume-yes-for-downloads',
             '--output-dir=' + output_dir,
             '--windows-console-mode=attach',
             
-            # Только основные модули
+            
             '--include-module=telegram',
             '--include-module=pyautogui',
             '--include-module=cv2',
@@ -1007,7 +1007,7 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
             '--include-module=psutil',
             '--include-module=requests',
             
-            # Включаем файлы данных
+            
             '--include-data-files=' + os.path.join(temp_dir, 'live_control.html') + '=live_control.html',
             '--include-data-files=' + os.path.join(temp_dir, 'user_programs.json') + '=user_programs.json',
             
@@ -1017,23 +1017,23 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
         logging.info("Запускаю Nuitka (упрощенную версию)...")
         logging.info(f"Рабочая папка: {temp_dir}")
         
-        # Показываем полную команду для диагностики
+        
         full_cmd = ' '.join(cmd)
         logging.info(f"Полная команда Nuitka: {full_cmd}")
         
-        # Запускаем с детальным логированием
+        
         result = subprocess.run(
             cmd,
             capture_output=True,
             text=True,
-            timeout=600,  # 10 минут максимум
+            timeout=600,  
             cwd=temp_dir,
             env=os.environ.copy()
         )
         
         logging.info(f"Nuitka return code: {result.returncode}")
         
-        # Показываем ВСЮ информацию из stdout и stderr
+        
         if result.stdout:
             logging.info(f"Nuitka STDOUT:\n{result.stdout}")
         
@@ -1041,7 +1041,7 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
             logging.error(f"Nuitka STDERR:\n{result.stderr}")
         
         if result.returncode == 0:
-            # Ищем созданную папку с исполняемым файлом
+            
             main_name = os.path.splitext(os.path.basename(main_file))[0]
             exe_folder = os.path.join(output_dir, main_name + '.dist')
             exe_path = os.path.join(exe_folder, main_name + '.exe')
@@ -1050,7 +1050,7 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
                 size_mb = os.path.getsize(exe_path) / (1024 * 1024)
                 logging.info(f"EXE создан: {exe_path}, размер: {size_mb:.1f} MB")
                 
-                # Создаем ZIP с папкой для удобства
+                
                 zip_path = os.path.join(temp_dir, f'PCController_{user_id}_nuitka.zip')
                 with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                     for root, dirs, files in os.walk(exe_folder):
@@ -1060,9 +1060,9 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
                             zipf.write(file_path, arc_name)
                 
                 logging.info(f"Создан ZIP с Nuitka сборкой: {zip_path}")
-                return zip_path  # Возвращаем ZIP вместо EXE
+                return zip_path  
             else:
-                # Ищем любой EXE в output папке
+                
                 for root, dirs, files in os.walk(output_dir):
                     for file in files:
                         if file.endswith('.exe'):
@@ -1071,7 +1071,7 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
                             return found_exe
                 
                 logging.error("EXE файл не найден после успешной сборки Nuitka")
-                # Покажем содержимое output папки для диагностики
+                
                 if os.path.exists(output_dir):
                     logging.info(f"Содержимое {output_dir}:")
                     for item in os.listdir(output_dir):
@@ -1086,7 +1086,7 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
         else:
             logging.error(f"Nuitka завершился с ошибкой {result.returncode}")
             
-            # Попробуем еще более простую команду
+            
             logging.info("Пробуем минимальную команду Nuitka...")
             simple_cmd = [
                 sys.executable, '-m', 'nuitka',
@@ -1106,7 +1106,7 @@ def build_exe_for_user_f_drive_nuitka(user_id, token, use_f_drive=True):
             
             if simple_result.returncode == 0:
                 logging.info("Минимальная команда сработала!")
-                # Ищем EXE файл
+                
                 for root, dirs, files in os.walk(output_dir):
                     for file in files:
                         if file.endswith('.exe'):
@@ -1128,7 +1128,7 @@ def test_nuitka_simple():
     try:
         temp_dir = tempfile.mkdtemp(prefix="nuitka_test_")
         
-        # Создаем простейший тест
+        
         test_code = '''
 import sys
 print("Hello from Nuitka!")
@@ -1139,7 +1139,7 @@ input("Press Enter...")
         with open(test_file, 'w') as f:
             f.write(test_code)
         
-        # Минимальная команда
+        
         cmd = [
             sys.executable, '-m', 'nuitka',
             '--standalone',
@@ -1175,7 +1175,7 @@ def diagnose_nuitka_issues():
     
     print("=== Диагностика Nuitka ===")
     
-    # 1. Проверяем Python версию
+    
     python_version = sys.version_info
     print(f"Python версия: {python_version.major}.{python_version.minor}.{python_version.micro}")
     
@@ -1183,7 +1183,7 @@ def diagnose_nuitka_issues():
         issues.append("Старая версия Python")
         solutions.append("Обновите Python до версии 3.7+")
     
-    # 2. Проверяем установку Nuitka
+    
     try:
         result = subprocess.run([sys.executable, '-c', 'import nuitka; print(nuitka.__version__)'], 
                               capture_output=True, text=True, timeout=10)
@@ -1196,14 +1196,14 @@ def diagnose_nuitka_issues():
         issues.append(f"Ошибка импорта Nuitka: {e}")
         solutions.append("Установите Nuitka: pip install nuitka")
     
-    # 3. Проверяем C++ компилятор (нужен для Nuitka)
+    
     try:
-        # Пробуем найти MSVC
+        
         result = subprocess.run(['where', 'cl'], capture_output=True, text=True)
         if result.returncode == 0:
             print("✅ MSVC компилятор найден")
         else:
-            # Пробуем GCC
+            
             result = subprocess.run(['where', 'gcc'], capture_output=True, text=True)
             if result.returncode == 0:
                 print("✅ GCC компилятор найден")
@@ -1214,7 +1214,7 @@ def diagnose_nuitka_issues():
         issues.append("Не удалось проверить компилятор")
         solutions.append("Установите Visual Studio Build Tools")
     
-    # 4. Проверяем свободное место
+    
     import psutil
     disk_usage = psutil.disk_usage('C:/')
     free_gb = disk_usage.free / (1024**3)
@@ -1223,7 +1223,7 @@ def diagnose_nuitka_issues():
         issues.append(f"Мало места на диске C: ({free_gb:.1f} GB)")
         solutions.append("Освободите место на диске (нужно минимум 3 GB)")
     
-    # 5. Проверяем права администратора
+    
     import ctypes
     try:
         is_admin = ctypes.windll.shell32.IsUserAnAdmin()
@@ -1235,7 +1235,7 @@ def diagnose_nuitka_issues():
     except:
         print("⚠️ Не удалось проверить права администратора")
     
-    # Выводим результаты
+    
     if issues:
         print("\n❌ Найдены проблемы:")
         for i, issue in enumerate(issues, 1):
@@ -1255,15 +1255,15 @@ def fix_nuitka_install():
     try:
         print("Переустановка Nuitka...")
         
-        # 1. Удаляем старую версию
+        
         subprocess.run([sys.executable, '-m', 'pip', 'uninstall', 'nuitka', '-y'], 
                       capture_output=True)
         
-        # 2. Обновляем pip
+        
         subprocess.run([sys.executable, '-m', 'pip', 'install', '--upgrade', 'pip'], 
                       check=True, capture_output=True)
         
-        # 3. Устанавливаем Nuitka заново
+        
         subprocess.run([sys.executable, '-m', 'pip', 'install', 'nuitka'], 
                       check=True, capture_output=True)
         
@@ -1274,15 +1274,15 @@ def fix_nuitka_install():
         print(f"❌ Ошибка переустановки: {e}")
         return False
 
-# Альтернативный метод сборки если Nuitka не работает
+
 def fallback_to_pyinstaller_optimized(user_id, token, temp_dir):
     """Оптимизированная версия PyInstaller если Nuitka не работает"""
     try:
         logging.info("Используем оптимизированный PyInstaller как fallback")
         
-        # Создаем простой spec файл без лишних модулей
+        
         spec_content = f'''
-# Minimal PyInstaller spec
+
 import sys
 import os
 
@@ -1710,7 +1710,7 @@ def button_callback(update: Update, context: CallbackContext):
     elif data == "get_exe":
         query.edit_message_text("🔧 Проверяю Nuitka...")
         
-        # Сначала диагностируем систему
+        
         if not diagnose_nuitka_issues():
             if not fix_nuitka_install():
                 query.edit_message_text("❌ Nuitka недоступен. Попробуйте ZIP архив или обратитесь в поддержку.")
@@ -1730,7 +1730,7 @@ def button_callback(update: Update, context: CallbackContext):
                     user_data['generation_count'] = user_data.get('generation_count', 0) + 1
                     set_user_data(user_id, user_data)
             else:
-                # Пробуем fallback
+                
                 query.edit_message_text("⚙️ Nuitka не сработал, пробую PyInstaller...")
                 fallback_exe = fallback_to_pyinstaller_optimized(user_id, token, temp_dir)
                 
